@@ -1,0 +1,47 @@
+regions:
+#        - "global" # This is for all global resource types e.g. IAM
+#        - "us-east-1"
+#        - "us-east-2"
+#        - "us-west-1"
+#        - "us-west-2"
+        - "eu-west-1"
+
+account-blacklist:
+- 122444343434
+
+resource-types:
+        targets:
+                - s3Bucket
+                - s3Object
+                - EC2Instance
+                - EC2Snapshot
+                - CloudWatchAlarm
+                - EC2VPC
+                - IAMUser
+                - CloudFormationStack
+                - SNSTopic
+                - LambdaFunction
+
+accounts:
+        "606411655045":
+            filters:
+                IAMUser:
+                 - "nukeuser"
+                EC2Image: 
+                 - property: "tag:release"
+                   value: "production"
+                EC2Instance:
+                 - property: "tag:Custodian"
+                   value: "yes"
+                SNSTopic:
+                 - property: "Name:control"
+                 - type: contains
+                 - value: "control"
+                LambdaFunction:
+                 - property: "Name:control"
+                 - type: contains
+                 - value: "control"
+                CloudFormationStack:
+                 - property: "Name"
+                   type: contains
+                   value: "test"

@@ -1,0 +1,100 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template to trigger code build for account nukedown
+Parameters:
+  RepoName:
+    Type: String
+    Description: Name of the repo which conatins the code
+    Default: cleanup
+  ArtifactStoreS3Location:
+    Type: String
+    Description: Name of S3 bucket 
+    Default: testtothrash
+  AdministratorAccountId:
+    Type: String
+    Description: Please enter the Account ID
+    Default: 786878  
+
+Resources:
+  CodeBuildRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: codebuildroleforcfn
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "codebuild.amazonaws.com"
+                - "codepipeline.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: /service-role/
+      Policies:
+        - PolicyName: "AdministratorAccess"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: "*"
+                Resource: "*"
+  BuildRestAppCFNProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub BuildRestAppCFNProject-${AWS::StackName}
+      Description: Build Project for account nuke requirement
+      ServiceRole: !GetAtt [CodeBuildRole, Arn]
+      Artifacts:
+        Type: S3
+        Location: !Ref ArtifactStoreS3Location
+        Name: !Sub BuildRestAppCFNProject-${AWS::StackName}
+      Environment:
+        Type: LINUX_CONTAINER
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        ComputeType: BUILD_GENERAL1_SMALL
+      Source:
+        Location: !Sub https://git-codecommit.eu-west-1.amazonaws.com/v1/repos/${RepoName}
+        Type: CODECOMMIT
+      TimeoutInMinutes: 15
+      Tags: 
+        - Key: Name
+          Value: !Sub https://git-codecommit.eu-west-1.amazonaws.com/v1/repos/${RepoName}
+  DeployPipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: !Sub CICDpipe-${AWS::StackName}
+      RoleArn: !GetAtt [CodeBuildRole, Arn]
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: ApplicationSource
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Version: 1
+                Provider: CodeCommit
+              OutputArtifacts: 
+                - Name: ApplicationOutput
+              Configuration:
+                BranchName: master
+                RepositoryName: !Ref RepoName
+              RunOrder: 1
+        - Name: Build
+          Actions: 
+            - Name: CodeBuild
+              InputArtifacts: 
+                - Name: ApplicationOutput
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              OutputArtifacts: 
+                - Name: Appartifact
+              Configuration:
+                ProjectName: !Ref BuildRestAppCFNProject
+              RunOrder: 1
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactStoreS3Location

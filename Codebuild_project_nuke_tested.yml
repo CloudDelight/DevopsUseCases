@@ -1,0 +1,35 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template to trigger code build for account nukedown
+Parameters:
+  RepoName:
+    Type: String
+    Description: Name of the repo which conatins the code
+    Default: cleanup
+  ArtifactStoreS3Location:
+    Type: String
+    Description: Name of S3 bucket 
+    Default: testtothrash
+
+Resources:
+  BuildRestAppCFNProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub BuildRestAppCFNProject-${AWS::StackName}
+      Description: Build Project for account nuke requirement
+      ServiceRole: arn:aws:iam::606411655045:role/service-role/codebuild-AccountCleanup-service-role
+      Artifacts:
+        Type: S3
+        Location: !Ref ArtifactStoreS3Location
+        Name: !Sub BuildRestAppCFNProject-${AWS::StackName}
+      Environment:
+        Type: LINUX_CONTAINER
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        ComputeType: BUILD_GENERAL1_SMALL
+      Source:
+        Location: !Sub https://git-codecommit.eu-west-1.amazonaws.com/v1/repos/${RepoName}
+        Type: CODECOMMIT
+      TimeoutInMinutes: 15
+      Tags: 
+        - Key: Name
+          Value: !Sub https://git-codecommit.eu-west-1.amazonaws.com/v1/repos/${RepoName}

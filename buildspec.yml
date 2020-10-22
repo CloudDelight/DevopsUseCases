@@ -1,0 +1,23 @@
+version: 0.2
+env:
+  parameter-store:
+    ACCESS_KEY: /CodeBuild/accesskey
+    SECRET_KEY: /CodeBuild/secretkey
+phases:
+  install:
+    run-as: root
+    commands:
+
+      - npm install node-wget
+      - wget https://github.com/rebuy-de/aws-nuke/releases/download/v2.7.0/aws-nuke-v2.7.0-linux-amd64.tar.gz 
+      - tar xvf aws-nuke-v2.7.0-linux-amd64.tar.gz
+      - chmod +x aws-nuke-v2.7.0-linux-amd64
+      - mv aws-nuke-v2.7.0-linux-amd64 /usr/local/bin/aws-nuke
+      - wget https://testtothrash.s3-eu-west-1.amazonaws.com/config.yml
+   
+  build:
+    run-as: root
+    commands:
+
+
+      - aws-nuke --config config.yml --access-key-id $ACCESS_KEY --secret-access-key $SECRET_KEY --force --no-dry-run 
